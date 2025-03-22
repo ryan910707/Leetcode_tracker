@@ -2,12 +2,13 @@ name: Update LeetCode Progress
 
 on:
   schedule:
-    - cron: "0 3 * * *"  # 每天 UTC+0 的 03:00 執行一次
-  workflow_dispatch:     # 可以手動在 GitHub Actions 裡觸發
+    - cron: "0 3 * * *"  # 每天 UTC 03:00
+  workflow_dispatch:
 
 jobs:
   update-progress:
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out the repository
         uses: actions/checkout@v3
@@ -20,9 +21,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run script to update index.html
-        # env:
-        #   LEETCODE_USER: ${{ secrets.LEETCODE_USER }}   # 建議在 GitHub 專案 Settings -> Secrets 里設定
+      - name: Run script to update daily_progress.json
         run: |
           python scripts/fetch_progress.py
 
@@ -30,7 +29,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html
+          git add docs/daily_progress.json
           git commit -m "Update LeetCode progress [skip ci]" || echo "No changes to commit"
 
       - name: Push changes
