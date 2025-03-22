@@ -1,98 +1,114 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="utf-8">
-    <title>LeetCode 進度報告</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        margin: 20px;
-      }
-      table {
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 600px;
-      }
-      th, td {
-        border: 1px solid #ccc;
-        padding: 8px 12px;
-      }
-      th {
-        background-color: #f5f5f5;
-      }
-      tr:hover {
-        background-color: #f9f9f9;
-      }
-    </style>
+  <meta charset="utf-8" />
+  <title>LeetCode 進度總覽</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    #chart-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .loading {
+      color: gray;
+      font-style: italic;
+    }
+  </style>
 </head>
 <body>
-    <h1>LeetCode 進度報告</h1>
-    <p>下表為多名使用者的 LeetCode Accepted 數量：</p>
-    <table>
-        <thead>
-            <tr>
-                <th>使用者</th>
-                <th>Easy</th>
-                <th>Medium</th>
-                <th>Hard</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            
-            <tr>
-                <td>kevin1010607</td>
-                <td>332</td>
-                <td>747</td>
-                <td>238</td>
-                <td>1317</td>
-            </tr>
-            
-            <tr>
-                <td>johnson684</td>
-                <td>44</td>
-                <td>107</td>
-                <td>13</td>
-                <td>164</td>
-            </tr>
-            
-            <tr>
-                <td>erictsai90</td>
-                <td>44</td>
-                <td>94</td>
-                <td>7</td>
-                <td>145</td>
-            </tr>
-            
-            <tr>
-                <td>ryanke91</td>
-                <td>30</td>
-                <td>83</td>
-                <td>13</td>
-                <td>126</td>
-            </tr>
-            
-            <tr>
-                <td>dasbd72</td>
-                <td>17</td>
-                <td>50</td>
-                <td>8</td>
-                <td>75</td>
-            </tr>
-            
-            <tr>
-                <td>huiyuiui</td>
-                <td>38</td>
-                <td>24</td>
-                <td>1</td>
-                <td>63</td>
-            </tr>
-            
-        </tbody>
-    </table>
-    <footer>
-        <p style="margin-top: 20px;">最後更新：由 GitHub Actions 自動執行</p>
-    </footer>
+  <h1>LeetCode Progress Chart</h1>
+  <p>此圖表顯示多位使用者每天的累計解題數量。</p>
+  <div id="chart-container">
+    <canvas id="progressChart"></canvas>
+    <p id="loadingText" class="loading">Loading chart data...</p>
+  </div>
+
+  <script>
+    // 1. 先抓取 daily_progress.json
+    fetch('./daily_progress.json')
+      .then(response => response.json())
+      .then(data => {
+        // data 結構：
+        // {
+        //   "2025-03-21": { "kevin1010607": 123, "johnson684": 150, ... },
+        //   "2025-03-22": { "kevin1010607": 128, "johnson684": 153, ... }
+        // }
+
+        // 2. 將 data 轉成 Chart.js 需要的格式
+        //    先取得所有日期(排序後)與所有使用者ID
+        const allDates = Object.keys(data).sort(); // ["2025-03-21", "2025-03-22", ...]
+        const sampleDate = data[allDates[0]] || {};
+        const allUsers = Object.keys(sampleDate);  // ["kevin1010607", "johnson684", ...]
+
+        // 3. 為每個使用者準備一條 line
+        //    datasets: [{ label: user1, data: [...], borderColor: ..., fill: false }, ...]
+        const datasets = allUsers.map((user, idx) => {
+          // 每個日期對應的解題數
+          const userData = allDates.map(date => data[date][user]);
+          
+          // 簡單幫每條線做個顏色
+          const colorList = ["#ff6384", "#36a2eb", "#cc65fe", "#ffce56", "#4bc0c0", "#9966ff", "#f67019"];
+          const color = colorList[idx % colorList.length];
+
+          return {
+            label: user,
+            data: userData,
+            borderColor: color,
+            backgroundColor: color,
+            tension: 0.1,
+            fill: false
+          };
+        });
+
+        // 4. 建立 Chart.js
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        const chart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: allDates,
+            datasets: datasets
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: 'LeetCode Daily Progress'
+              },
+              legend: {
+                display: true
+              }
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'Date'
+                }
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Total Solved'
+                },
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        // 5. 移除「Loading...」字樣
+        document.getElementById("loadingText").style.display = "none";
+      })
+      .catch(err => {
+        document.getElementById("loadingText").textContent = "Error loading data: " + err;
+      });
+  </script>
 </body>
 </html>

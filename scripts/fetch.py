@@ -1,5 +1,8 @@
 import os
+import json
+import datetime
 import requests
+from pathlib import Path
 
 GRAPHQL_URL = "https://leetcode.com/graphql"
 HEADERS = {
@@ -10,7 +13,7 @@ HEADERS = {
 
 
 def fetch_question_progress(user_slug: str):
-    """根據給定的 user_slug 抓取該使用者的 LeetCode 解題進度"""
+    """根據 user_slug 抓取該使用者的 LeetCode 解題進度（簡易版）"""
     headers = HEADERS.copy()
     headers.update({
         "Referer": f"https://leetcode.com/{user_slug}/",
@@ -50,12 +53,12 @@ def fetch_question_progress(user_slug: str):
         return result
     else:
         raise Exception(
-            f"Query failed to run with status code {response.status_code}: {response.text}"
+            f"Query failed: status={response.status_code}, text={response.text}"
         )
 
 
 if __name__ == "__main__":
-    # 1. 多個使用者 ID 列表
+    # 1. 多個使用者 (你想要抓的 LeetCode 用戶)
     user_list = [
         "kevin1010607",
         "johnson684",
@@ -64,85 +67,46 @@ if __name__ == "__main__":
         "dasbd72",
         "huiyuiui",
     ]
-    
-    # 2. 建立 HTML 表格內容
-    table_rows = ""
+
+    # 2. 準備日期 key (以 YYYY-MM-DD 表示)
+    today_str = datetime.date.today().isoformat()
+
+    # 3. 讀取現有的 daily_progress.json（若檔案不存在，就初始化一個空字典）
+    data_file = Path("docs/daily_progress.json")
+    if data_file.exists():
+        with open(data_file, "r", encoding="utf-8") as f:
+            daily_data = json.load(f)
+    else:
+        daily_data = {}
+
+    # daily_data 結構示意：
+    # {
+    #   "2025-03-21": {
+    #       "kevin1010607": 120,
+    #       "johnson684":  155,
+    #       ...
+    #   },
+    #   "2025-03-22": {
+    #       ...
+    #   }
+    # }
+
+    # 4. 更新今日資料
+    if today_str not in daily_data:
+        daily_data[today_str] = {}
+
     for user in user_list:
         try:
             progress = fetch_question_progress(user)
-            table_rows += f"""
-            <tr>
-                <td>{user}</td>
-                <td>{progress['EASY']}</td>
-                <td>{progress['MEDIUM']}</td>
-                <td>{progress['HARD']}</td>
-                <td>{progress['TOTAL']}</td>
-            </tr>
-            """
+            total_count = progress["TOTAL"]
+            daily_data[today_str][user] = total_count
         except Exception as e:
-            # 如果抓不到，顯示錯誤訊息
-            table_rows += f"""
-            <tr>
-                <td>{user}</td>
-                <td colspan="4" style="color:red;">Error: {e}</td>
-            </tr>
-            """
+            # 抓取失敗時可視情況記錄 -1 或其他處理方式
+            daily_data[today_str][user] = None
+            print(f"[Error] {user} -> {e}")
 
-    # 3. 建立完整 HTML
-    html_content = f"""
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="utf-8">
-    <title>LeetCode 進度報告</title>
-    <style>
-      body {{
-        font-family: Arial, sans-serif;
-        margin: 20px;
-      }}
-      table {{
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 600px;
-      }}
-      th, td {{
-        border: 1px solid #ccc;
-        padding: 8px 12px;
-      }}
-      th {{
-        background-color: #f5f5f5;
-      }}
-      tr:hover {{
-        background-color: #f9f9f9;
-      }}
-    </style>
-</head>
-<body>
-    <h1>LeetCode 進度報告</h1>
-    <p>下表為多名使用者的 LeetCode Accepted 數量：</p>
-    <table>
-        <thead>
-            <tr>
-                <th>使用者</th>
-                <th>Easy</th>
-                <th>Medium</th>
-                <th>Hard</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            {table_rows}
-        </tbody>
-    </table>
-    <footer>
-        <p style="margin-top: 20px;">最後更新：由 GitHub Actions 自動執行</p>
-    </footer>
-</body>
-</html>
-"""
+    # 5. 寫回 daily_progress.json
+    with open(data_file, "w", encoding="utf-8") as f:
+        json.dump(daily_data, f, ensure_ascii=False, indent=2)
 
-    # 4. 寫入 docs/index.html（若無此檔則自動建立）
-    with open("docs/index.html", "w", encoding="utf-8") as f:
-        f.write(html_content)
-
-    print("✅ 已寫入 docs/index.html")
+    print(f"✅ 更新完畢：{today_str} 的資料已寫入 daily_progress.json")
