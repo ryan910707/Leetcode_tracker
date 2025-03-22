@@ -10,7 +10,7 @@ HEADERS = {
 
 
 def fetch_question_progress(user_slug: str):
-    # 動態更新 Referer
+    """根據給定的 user_slug 抓取該使用者的 LeetCode 解題進度"""
     headers = HEADERS.copy()
     headers.update({
         "Referer": f"https://leetcode.com/{user_slug}/",
@@ -33,7 +33,6 @@ def fetch_question_progress(user_slug: str):
     }
 
     response = requests.post(GRAPHQL_URL, json=payload, headers=headers)
-
     if response.status_code == 200:
         data = response.json()
         data = data["data"]["userProfileUserQuestionProgressV2"]["numAcceptedQuestions"]
@@ -51,45 +50,99 @@ def fetch_question_progress(user_slug: str):
         return result
     else:
         raise Exception(
-            f"Query failed with status code {response.status_code}: {response.text}"
+            f"Query failed to run with status code {response.status_code}: {response.text}"
         )
 
 
 if __name__ == "__main__":
-    # 1. 取得 LeetCode 使用者名稱（可改為你想要的使用者）
-    user_slug = "ryanke91"
+    # 1. 多個使用者 ID 列表
+    user_list = [
+        "kevin1010607",
+        "johnson684",
+        "erictsai90",
+        "ryanke91",
+        "dasbd72",
+        "huiyuiui",
+    ]
+    
+    # 2. 建立 HTML 表格內容
+    table_rows = ""
+    for user in user_list:
+        try:
+            progress = fetch_question_progress(user)
+            table_rows += f"""
+            <tr>
+                <td>{user}</td>
+                <td>{progress['EASY']}</td>
+                <td>{progress['MEDIUM']}</td>
+                <td>{progress['HARD']}</td>
+                <td>{progress['TOTAL']}</td>
+            </tr>
+            """
+        except Exception as e:
+            # 如果抓不到，顯示錯誤訊息
+            table_rows += f"""
+            <tr>
+                <td>{user}</td>
+                <td colspan="4" style="color:red;">Error: {e}</td>
+            </tr>
+            """
 
-    # 2. 抓取資料
-    progress = fetch_question_progress(user_slug)
-
-    # 3. 將抓到的資料寫入到 docs/index.html
-    #   (若你已經在 docs 裡有模板，可以先讀取後再插入數據)
+    # 3. 建立完整 HTML
     html_content = f"""
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
     <meta charset="utf-8">
-    <title>LeetCode 進度報告 - {user_slug}</title>
+    <title>LeetCode 進度報告</title>
+    <style>
+      body {{
+        font-family: Arial, sans-serif;
+        margin: 20px;
+      }}
+      table {{
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 600px;
+      }}
+      th, td {{
+        border: 1px solid #ccc;
+        padding: 8px 12px;
+      }}
+      th {{
+        background-color: #f5f5f5;
+      }}
+      tr:hover {{
+        background-color: #f9f9f9;
+      }}
+    </style>
 </head>
 <body>
     <h1>LeetCode 進度報告</h1>
-    <p><strong>User:</strong> {user_slug}</p>
-    <ul>
-        <li>Easy: {progress["EASY"]}</li>
-        <li>Medium: {progress["MEDIUM"]}</li>
-        <li>Hard: {progress["HARD"]}</li>
-        <li>Total: {progress["TOTAL"]}</li>
-    </ul>
+    <p>下表為多名使用者的 LeetCode Accepted 數量：</p>
+    <table>
+        <thead>
+            <tr>
+                <th>使用者</th>
+                <th>Easy</th>
+                <th>Medium</th>
+                <th>Hard</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {table_rows}
+        </tbody>
+    </table>
     <footer>
-        <p>最後更新：由 GitHub Actions 自動執行</p>
+        <p style="margin-top: 20px;">最後更新：由 GitHub Actions 自動執行</p>
     </footer>
 </body>
 </html>
 """
 
-    # 把產生的內容寫入 docs/index.html
-    # 注意：如果 docs/index.html 不存在，會自動建立檔案
+    # 4. 寫入 docs/index.html（若無此檔則自動建立）
     with open("docs/index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
 
-    print("資料抓取完成並已寫入 docs/index.html")
+    print("✅ 已寫入 docs/index.html")
