@@ -18,7 +18,7 @@
     .loading {
       color: gray;
       font-style: italic;
-    }
+    } 
   </style>
 </head>
 <body>
@@ -46,7 +46,7 @@
         const sampleDate = data[allDates[0]] || {};
         const allUsers = Object.keys(sampleDate);  // ["kevin1010607", "johnson684", ...]
 
-        // 3. 為每個使用者準備一條 line
+        // 3. 為每個使用者準備一條line
         //    datasets: [{ label: user1, data: [...], borderColor: ..., fill: false }, ...]
         const datasets = allUsers.map((user, idx) => {
           // 每個日期對應的解題數
