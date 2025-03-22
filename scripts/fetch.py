@@ -11,13 +11,10 @@ HEADERS = {
     "Referer": "https://leetcode.com/problemset/all/",
 }
 
-
 def fetch_question_progress(user_slug: str):
-    """根據 user_slug 抓取該使用者的 LeetCode 解題進度（簡易版）"""
+    """抓取單一使用者的 LeetCode Accepted 題數 (Easy/Medium/Hard/Total)"""
     headers = HEADERS.copy()
-    headers.update({
-        "Referer": f"https://leetcode.com/{user_slug}/",
-    })
+    headers["Referer"] = f"https://leetcode.com/{user_slug}/"
 
     query = """
     query userProfileUserQuestionProgressV2($userSlug: String!) {
@@ -35,17 +32,18 @@ def fetch_question_progress(user_slug: str):
         "operationName": "userProfileUserQuestionProgressV2",
     }
 
-    response = requests.post(GRAPHQL_URL, json=payload, headers=headers)
-    if response.status_code == 200:
-        data = response.json()
-        data = data["data"]["userProfileUserQuestionProgressV2"]["numAcceptedQuestions"]
+    resp = requests.post(GRAPHQL_URL, json=payload, headers=headers)
+    if resp.status_code == 200:
+        data = resp.json()
+        arr = data["data"]["userProfileUserQuestionProgressV2"]["numAcceptedQuestions"]
+
         result = {
             "EASY": 0,
             "MEDIUM": 0,
             "HARD": 0,
-            "TOTAL": 0,
+            "TOTAL": 0
         }
-        for entry in data:
+        for entry in arr:
             difficulty = entry["difficulty"]
             count = entry["count"]
             result[difficulty] = count
@@ -53,12 +51,12 @@ def fetch_question_progress(user_slug: str):
         return result
     else:
         raise Exception(
-            f"Query failed: status={response.status_code}, text={response.text}"
+            f"Query failed with status code {resp.status_code}: {resp.text}"
         )
 
 
 if __name__ == "__main__":
-    # 1. 多個使用者 (你想要抓的 LeetCode 用戶)
+    # 1. 你想要追蹤的多個使用者
     user_list = [
         "kevin1010607",
         "johnson684",
@@ -68,10 +66,10 @@ if __name__ == "__main__":
         "huiyuiui",
     ]
 
-    # 2. 準備日期 key (以 YYYY-MM-DD 表示)
-    today_str = datetime.date.today().isoformat()
+    # 2. 設定今日日期 (YYYY-MM-DD)
+    today = datetime.date.today().isoformat()
 
-    # 3. 讀取現有的 daily_progress.json（若檔案不存在，就初始化一個空字典）
+    # 3. 讀取現有的 daily_progress.json（若無則建空物件）
     data_file = Path("docs/daily_progress.json")
     if data_file.exists():
         with open(data_file, "r", encoding="utf-8") as f:
@@ -79,34 +77,32 @@ if __name__ == "__main__":
     else:
         daily_data = {}
 
-    # daily_data 結構示意：
-    # {
-    #   "2025-03-21": {
-    #       "kevin1010607": 120,
-    #       "johnson684":  155,
-    #       ...
-    #   },
-    #   "2025-03-22": {
-    #       ...
-    #   }
-    # }
+    # 4. 如果今天的key尚不存在，就初始化
+    if today not in daily_data:
+        daily_data[today] = {}
 
-    # 4. 更新今日資料
-    if today_str not in daily_data:
-        daily_data[today_str] = {}
-
+    # 5. 依序抓取每位使用者並更新到 daily_data
     for user in user_list:
         try:
-            progress = fetch_question_progress(user)
-            total_count = progress["TOTAL"]
-            daily_data[today_str][user] = total_count
+            stats = fetch_question_progress(user)
+            daily_data[today][user] = {
+                "EASY": stats["EASY"],
+                "MEDIUM": stats["MEDIUM"],
+                "HARD": stats["HARD"],
+                "TOTAL": stats["TOTAL"],
+            }
         except Exception as e:
-            # 抓取失敗時可視情況記錄 -1 或其他處理方式
-            daily_data[today_str][user] = None
-            print(f"[Error] {user} -> {e}")
+            # 若抓不到，就用 None 或其他方式標記
+            daily_data[today][user] = {
+                "EASY": None,
+                "MEDIUM": None,
+                "HARD": None,
+                "TOTAL": None,
+            }
+            print(f"[Error] {user}: {e}")
 
-    # 5. 寫回 daily_progress.json
+    # 6. 寫回檔案
     with open(data_file, "w", encoding="utf-8") as f:
         json.dump(daily_data, f, ensure_ascii=False, indent=2)
 
-    print(f"✅ 更新完畢：{today_str} 的資料已寫入 daily_progress.json")
+    print(f"✅ 已更新 {today} 的數據到 {data_file}")

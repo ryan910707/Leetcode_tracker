@@ -11,103 +11,194 @@
       margin: 20px;
     }
     #chart-container {
-      width: 100%;
-      max-width: 800px;
-      margin: 0 auto;
+      width: 1000px;   /* 或 80vw 等，依需求調整 */
+      height: 600px;   /* 調整高度 */
+      margin: 0 auto 40px auto;
     }
     .loading {
       color: gray;
       font-style: italic;
-    } 
+    }
+    table {
+      border-collapse: collapse;
+      margin: 0 auto;
+      width: 70%;
+      max-width: 800px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+      text-align: center;
+    }
+    th {
+      background-color: #f5f5f5;
+    }
+    tr:hover {
+      background-color: #fafafa;
+    }
   </style>
 </head>
 <body>
-  <h1>LeetCode Progress Chart</h1>
-  <p>此圖表顯示多位使用者每天的累計解題數量。</p>
+  <h1>LeetCode Progress</h1>
+  
+  <!-- 圖表區 -->
   <div id="chart-container">
     <canvas id="progressChart"></canvas>
     <p id="loadingText" class="loading">Loading chart data...</p>
   </div>
 
+  <!-- 資訊顯示區(表格) -->
+  <h2 style="text-align:center;">最新題數概況 (依 Total 由高到低)</h2>
+  <table id="latest-table" style="display:none;">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Easy</th>
+        <th>Medium</th>
+        <th>Hard</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- 動態插入 -->
+    </tbody>
+  </table>
+  
   <script>
-    // 1. 先抓取 daily_progress.json
-    fetch('./daily_progress.json')
-      .then(response => response.json())
+    // 1. 抓取 daily_progress.json
+    fetch("./daily_progress.json")
+      .then(r => r.json())
       .then(data => {
         // data 結構：
         // {
-        //   "2025-03-21": { "kevin1010607": 123, "johnson684": 150, ... },
-        //   "2025-03-22": { "kevin1010607": 128, "johnson684": 153, ... }
+        //   "2025-03-21": {
+        //     "kevin1010607": { "EASY": 20, "MEDIUM":10, "HARD":5, "TOTAL":35 },
+        //     "johnson684":   { "EASY": 25, "MEDIUM":15, "HARD":10, "TOTAL":50 },
+        //     ...
+        //   },
+        //   "2025-03-22": { ... }
         // }
 
-        // 2. 將 data 轉成 Chart.js 需要的格式
-        //    先取得所有日期(排序後)與所有使用者ID
-        const allDates = Object.keys(data).sort(); // ["2025-03-21", "2025-03-22", ...]
-        const sampleDate = data[allDates[0]] || {};
-        const allUsers = Object.keys(sampleDate);  // ["kevin1010607", "johnson684", ...]
+        // 2. 先把日期(YYYY-MM-DD)排序
+        const allDates = Object.keys(data).sort();
+        if (allDates.length === 0) {
+          document.getElementById("loadingText").textContent = "No data yet.";
+          return;
+        }
 
-        // 3. 為每個使用者準備一條line
-        //    datasets: [{ label: user1, data: [...], borderColor: ..., fill: false }, ...]
+        // 3. 準備 Chart.js 所需的 labels (x軸 -> allDates)
+        const labels = allDates;
+        
+        // 先從最新的一天取出使用者清單
+        const latestDate = allDates[allDates.length - 1];
+        const latestUsersData = data[latestDate]; // { user1: {...}, user2: {...}, ...}
+
+        // 再找出所有使用者 (不一定每天都一樣，但此範例假設相同)
+        // 可以用 Object.keys 取第一天或最新一天
+        const sampleDay = data[labels[0]];
+        const allUsers = Object.keys(sampleDay);
+
+        // 4. 準備 datasets (只用 TOTAL 畫線)
+        const colorPalette = ["#ff6384","#36a2eb","#cc65fe","#ffce56","#4bc0c0","#9966ff","#f67019"];
         const datasets = allUsers.map((user, idx) => {
-          // 每個日期對應的解題數
-          const userData = allDates.map(date => data[date][user]);
-          
-          // 簡單幫每條線做個顏色
-          const colorList = ["#ff6384", "#36a2eb", "#cc65fe", "#ffce56", "#4bc0c0", "#9966ff", "#f67019"];
-          const color = colorList[idx % colorList.length];
-
+          // 每個日期對應的 total
+          const userDataArr = labels.map(date => {
+            const userObj = data[date][user];
+            return userObj && userObj.TOTAL !== null ? userObj.TOTAL : null;
+          });
+          const color = colorPalette[idx % colorPalette.length];
           return {
             label: user,
-            data: userData,
+            data: userDataArr,
             borderColor: color,
             backgroundColor: color,
-            tension: 0.1,
-            fill: false
+            fill: false,
+            tension: 0.1
           };
         });
 
-        // 4. 建立 Chart.js
-        const ctx = document.getElementById('progressChart').getContext('2d');
+        // 5. 建立 Chart
+        const ctx = document.getElementById("progressChart").getContext("2d");
         const chart = new Chart(ctx, {
-          type: 'line',
+          type: "line",
           data: {
-            labels: allDates,
+            labels: labels,
             datasets: datasets
           },
           options: {
             responsive: true,
-            plugins: {
-              title: {
-                display: true,
-                text: 'LeetCode Daily Progress'
-              },
-              legend: {
-                display: true
-              }
-            },
+            maintainAspectRatio: false, // 允許依 #chart-container 大小調整
             scales: {
               x: {
                 title: {
                   display: true,
-                  text: 'Date'
+                  text: "Date"
                 }
               },
               y: {
                 title: {
                   display: true,
-                  text: 'Total Solved'
+                  text: "Total Solved"
                 },
                 beginAtZero: true
+                // 若差異過大，可嘗試對數刻度:
+                // type: 'logarithmic',
+                // beginAtZero: false
+              }
+            },
+            plugins: {
+              title: {
+                display: true,
+                text: "LeetCode Daily Total"
+              },
+              legend: {
+                display: true
               }
             }
           }
         });
 
-        // 5. 移除「Loading...」字樣
+        // 移除 Loading
         document.getElementById("loadingText").style.display = "none";
+
+        // 6. 生成 "最新日期" 的表格 (依 TOTAL 排序)
+        const tbody = document.querySelector("#latest-table tbody");
+        if (latestUsersData) {
+          // 將對象轉成陣列 [ [user, {E,M,H,T}], ... ]
+          let arr = Object.entries(latestUsersData);
+
+          // 根據TOTAL做降冪排序
+          arr.sort((a,b) => {
+            const totalA = a[1].TOTAL ?? 0;
+            const totalB = b[1].TOTAL ?? 0;
+            return totalB - totalA; // 降冪
+          });
+
+          // 逐列插入表格
+          arr.forEach(([user, stats]) => {
+            const easy = stats.EASY ?? "-";
+            const med = stats.MEDIUM ?? "-";
+            const hard = stats.HARD ?? "-";
+            const tot = stats.TOTAL ?? "-";
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${user}</td>
+              <td>${easy}</td>
+              <td>${med}</td>
+              <td>${hard}</td>
+              <td>${tot}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+          
+          // 顯示表格
+          document.getElementById("latest-table").style.display = "";
+        }
       })
       .catch(err => {
-        document.getElementById("loadingText").textContent = "Error loading data: " + err;
+        document.getElementById("loadingText").textContent =
+          "Error loading data: " + err;
       });
   </script>
 </body>

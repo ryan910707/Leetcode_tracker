@@ -1,10 +1,40 @@
 {
   "2025-03-23": {
-    "kevin1010607": 1317,
-    "johnson684": 164,
-    "erictsai90": 145,
-    "ryanke91": 126,
-    "dasbd72": 75,
-    "huiyuiui": 63
+    "kevin1010607": {
+      "EASY": 332,
+      "MEDIUM": 747,
+      "HARD": 238,
+      "TOTAL": 1317
+    },
+    "johnson684": {
+      "EASY": 44,
+      "MEDIUM": 107,
+      "HARD": 13,
+      "TOTAL": 164
+    },
+    "erictsai90": {
+      "EASY": 44,
+      "MEDIUM": 94,
+      "HARD": 7,
+      "TOTAL": 145
+    },
+    "ryanke91": {
+      "EASY": 30,
+      "MEDIUM": 83,
+      "HARD": 13,
+      "TOTAL": 126
+    },
+    "dasbd72": {
+      "EASY": 17,
+      "MEDIUM": 50,
+      "HARD": 8,
+      "TOTAL": 75
+    },
+    "huiyuiui": {
+      "EASY": 38,
+      "MEDIUM": 24,
+      "HARD": 1,
+      "TOTAL": 63
+    }
   }
 }
