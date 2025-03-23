@@ -23,7 +23,7 @@ jobs:
 
       - name: Run script to update daily_progress.json
         run: |
-          python scripts/fetch_progress.py
+          python scripts/fetch.py
 
       - name: Commit changes
         run: |
