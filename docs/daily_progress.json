@@ -5318,5 +5318,43 @@
       "HARD": 2,
       "TOTAL": 99
     }
+  },
+  "2025-08-12": {
+    "kevin1010607": {
+      "EASY": 386,
+      "MEDIUM": 797,
+      "HARD": 264,
+      "TOTAL": 1447
+    },
+    "johnson684": {
+      "EASY": 83,
+      "MEDIUM": 200,
+      "HARD": 43,
+      "TOTAL": 326
+    },
+    "erictsai90": {
+      "EASY": 124,
+      "MEDIUM": 271,
+      "HARD": 46,
+      "TOTAL": 441
+    },
+    "ryanke91": {
+      "EASY": 51,
+      "MEDIUM": 172,
+      "HARD": 44,
+      "TOTAL": 267
+    },
+    "dasbd72": {
+      "EASY": 54,
+      "MEDIUM": 139,
+      "HARD": 37,
+      "TOTAL": 230
+    },
+    "huiyuiui": {
+      "EASY": 47,
+      "MEDIUM": 50,
+      "HARD": 2,
+      "TOTAL": 99
+    }
   }
 }
